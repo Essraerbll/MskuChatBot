@@ -23,7 +23,7 @@ stages:
         docker push $(imageName):latest
       displayName: 'Docker Build & Push'
 
-# 2. Aşama: Dev Ortamına Deploy (Sadece dev branch ise)
+# 2. Aşama: Dev Ortamına Deploy
 - stage: DeployDev
   displayName: Deploy to DEV
   dependsOn: Build
@@ -33,15 +33,21 @@ stages:
     steps:
     - script: |
         ssh -o StrictHostKeyChecking=no $(appServer) "
+          # 1. Spesifik versiyonu indir (Build ID ile)
+          docker pull $(imageName):$(Build.BuildId) && \
+          
+          # 2. Eski container'ı durdur ve sil
           docker stop chatbot-dev || true && \
           docker rm chatbot-dev || true && \
+          
+          # 3. YENİ VERSİYONU BAŞLAT (Dikkat: latest yerine BuildId kullanıyoruz)
           docker run -d --restart=always -p 8081:80 --name chatbot-dev \
           -e ASPNETCORE_ENVIRONMENT=Development \
-          $(imageName):latest
+          $(imageName):$(Build.BuildId)
         "
       displayName: 'Run Dev Container (Port 8081)'
 
-# 3. Aşama: Prod Ortamına Deploy (Sadece main branch ise)
+# 3. Aşama: Prod Ortamına Deploy
 - stage: DeployProd
   displayName: Deploy to PROD
   dependsOn: Build
@@ -51,10 +57,16 @@ stages:
     steps:
     - script: |
         ssh -o StrictHostKeyChecking=no $(appServer) "
+          # 1. Spesifik versiyonu indir
+          docker pull $(imageName):$(Build.BuildId) && \
+          
+          # 2. Temizlik
           docker stop chatbot-prod || true && \
           docker rm chatbot-prod || true && \
+          
+          # 3. Yeni versiyonu başlat
           docker run -d --restart=always -p 8080:80 --name chatbot-prod \
           -e ASPNETCORE_ENVIRONMENT=Production \
-          $(imageName):latest
+          $(imageName):$(Build.BuildId)
         "
       displayName: 'Run Prod Container (Port 8080)'
