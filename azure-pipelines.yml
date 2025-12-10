@@ -1,0 +1,60 @@
+trigger:
+- main
+- dev  # Hem dev hem main değişikliklerinde tetiklen
+
+pool:
+  name: 'Default'
+
+variables:
+  imageName: '10.2.8.106:5000/chatbot-proje'
+  appServer: 'root@10.2.8.106'
+
+stages:
+# 1. Aşama: Build (Ortak)
+- stage: Build
+  displayName: Build and Push
+  jobs:
+  - job: Build
+    steps:
+    - script: |
+        docker build --no-cache -t $(imageName):$(Build.BuildId) .
+        docker tag $(imageName):$(Build.BuildId) $(imageName):latest
+        docker push $(imageName):$(Build.BuildId)
+        docker push $(imageName):latest
+      displayName: 'Docker Build & Push'
+
+# 2. Aşama: Dev Ortamına Deploy (Sadece dev branch ise)
+- stage: DeployDev
+  displayName: Deploy to DEV
+  dependsOn: Build
+  condition: eq(variables['Build.SourceBranchName'], 'dev')
+  jobs:
+  - job: DeployDev
+    steps:
+    - script: |
+        ssh -o StrictHostKeyChecking=no $(appServer) "
+          docker stop chatbot-dev || true && \
+          docker rm chatbot-dev || true && \
+          docker run -d --restart=always -p 8081:80 --name chatbot-dev \
+          -e ASPNETCORE_ENVIRONMENT=Development \
+          $(imageName):latest
+        "
+      displayName: 'Run Dev Container (Port 8081)'
+
+# 3. Aşama: Prod Ortamına Deploy (Sadece main branch ise)
+- stage: DeployProd
+  displayName: Deploy to PROD
+  dependsOn: Build
+  condition: eq(variables['Build.SourceBranchName'], 'main')
+  jobs:
+  - job: DeployProd
+    steps:
+    - script: |
+        ssh -o StrictHostKeyChecking=no $(appServer) "
+          docker stop chatbot-prod || true && \
+          docker rm chatbot-prod || true && \
+          docker run -d --restart=always -p 8080:80 --name chatbot-prod \
+          -e ASPNETCORE_ENVIRONMENT=Production \
+          $(imageName):latest
+        "
+      displayName: 'Run Prod Container (Port 8080)'
