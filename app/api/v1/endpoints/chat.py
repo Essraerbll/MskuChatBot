@@ -2,6 +2,7 @@
 import logging
 import uuid
 from datetime import datetime
+from typing import Optional
 from fastapi import APIRouter, HTTPException, status
 from app.api.models.chat import (
     ChatRequest, 
@@ -36,45 +37,70 @@ async def ask_question(request: ChatRequest) -> ChatResponse:
     try:
         # Generate conversation ID if not provided
         conversation_id = request.conversation_id or str(uuid.uuid4())
-        
-        logger.info(f"Processing question: {request.question[:50]}...")
-        
-        # TODO: Implement actual LLM service call
-        # For now, return a mock response
-        
-        mock_answer = """
-        MSKÜ (Muğla Sıtkı Koçman Üniversitesi) 2007 yılında kurulmuştur.
-        
-        Not: Bu şu anda bir mock yanıttır. LLM entegrasyonu eklendiğinde
-        gerçek dokümanlardan yanıt üretilecektir.
-        """
-        
+
+        logger.info(f"Processing question: {request.question[:80]}...")
+
+        # Try LLM service
+        from app.services.llm.factory import get_llm_service
+        llm = get_llm_service()
+
+        system_prompt = (
+            "Sen Muğla Sıtkı Koçman Üniversitesi'nin resmi chatbot'usun. "
+            "Sadece üniversiteye ait resmi dokümanlara dayanarak cevap ver. "
+            "Bilmiyorsan 'Bu konuda bilgim yok.' de. Türkçe yanıt ver."
+        )
+
+        answer_text: Optional[str] = None
+        model_used: str = "mock-model"
+        tokens_used: Optional[int] = None
+
+        if llm:
+            try:
+                result = llm.generate(
+                    question=request.question,
+                    system_prompt=system_prompt,
+                    max_tokens=request.max_tokens or 500,
+                    temperature=0.3,
+                )
+                answer_text = (result.content or "").strip()
+                model_used = result.model_used or model_used
+                tokens_used = result.tokens_used
+            except Exception as le:
+                logger.warning(f"LLM call failed, falling back to mock: {le}")
+
+        # Fallback to mock if no LLM or empty result
+        if not answer_text:
+            answer_text = (
+                "MSKÜ (Muğla Sıtkı Koçman Üniversitesi) 2007 yılında kurulmuştur.\n\n"
+                "Not: Bu şu anda bir mock yanıttır. GROQ_API_KEY eklenirse gerçek LLM yanıtı üretilecektir."
+            )
+
         mock_sources = [
             Source(
                 document_name="msku_hakkinda.pdf",
                 page_number=1,
                 relevance_score=0.95,
-                excerpt="MSKÜ 2007 yılında Muğla Üniversitesi adıyla kurulmuştur..."
+                excerpt="MSKÜ 2007 yılında Muğla Üniversitesi adıyla kurulmuştur...",
             )
         ]
-        
+
         # Calculate processing time
         processing_time = int((datetime.now() - start_time).total_seconds() * 1000)
-        
+
         response_data = ChatResponseData(
-            answer=mock_answer.strip(),
+            answer=answer_text,
             conversation_id=conversation_id,
             sources=mock_sources if request.include_sources else [],
             confidence_score=0.95,
             processing_time_ms=processing_time,
-            model_used="mock-model",
-            tokens_used=150
+            model_used=model_used,
+            tokens_used=tokens_used,
         )
-        
+
         return ChatResponse(
             success=True,
             data=response_data,
-            timestamp=datetime.utcnow().isoformat() + "Z"
+            timestamp=datetime.utcnow().isoformat() + "Z",
         )
         
     except Exception as e:
