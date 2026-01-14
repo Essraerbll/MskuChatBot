@@ -2,13 +2,48 @@
 
 LLM Tabanlı Üniversite Bilgi Asistanı - Backend servisi
 
-## 🚀 Hızlı Başlangıç
+## � İçindekiler
+- [Hızlı Başlangıç](#-hızlı-başlangıç)
+- [Docker ile Çalıştırma](#-docker-ile-çalıştırma-geliştirme-ortamı)
+- [Python ile Çalıştırma](#python-ile-manual-kurulum)
+- [API Endpoints](#-api-endpoints)
+
+## �🚀 Hızlı Başlangıç
+
+### ⚡ En Hızlı Yol (Docker ile)
+
+**Windows:**
+```bash
+# 1. .env dosyasını oluştur ve GROQ_API_KEY ekle
+copy .env.example .env
+
+# 2. Kolay başlatma scripti ile çalıştır
+start-dev.bat
+```
+
+**Linux/Mac:**
+```bash
+# 1. .env dosyasını oluştur ve GROQ_API_KEY ekle
+cp .env.example .env
+
+# 2. Scripti çalıştırılabilir yap ve başlat
+chmod +x start-dev.sh
+./start-dev.sh
+```
 
 ### Gereksinimler
 
 - Python 3.10+
 - pip
-- (Opsiyonel) Docker & Docker Compose
+- (Opsiyonel) Docker & Docker Compose v2.0+
+
+**Not:** Docker Desktop kullanıyorsanız Docker Compose otomatik olarak dahildir.
+
+---
+
+## 🔧 Python ile Manual Kurulum
+
+Eğer Docker kullanmak istemiyorsanız:
 
 ### Kurulum
 
@@ -57,21 +92,63 @@ python -m app.main
 
 Tarayıcınızda açın: http://localhost:8000/api/v1/docs
 
-## 🐳 Docker ile Çalıştırma
+## 🐳 Docker ile Çalıştırma (Geliştirme Ortamı)
+
+### İlk Kurulum
 
 ```bash
-# Docker image oluştur ve çalıştır
-docker-compose up --build
+# .env dosyasını oluştur ve GROQ_API_KEY ekle
+copy .env.example .env  # Windows
+# cp .env.example .env  # Linux/Mac
 
-# Arka planda çalıştır
+# Docker container'ı oluştur ve başlat
+docker-compose up --build
+```
+
+### Günlük Kullanım
+
+```bash
+# Container'ı başlat (arka planda)
 docker-compose up -d
 
 # Logları görüntüle
-docker-compose logs -f
+docker-compose logs -f app
+
+# Container'ı durdur
+docker-compose down
+
+# Container'ı yeniden başlat
+docker-compose restart app
+
+# Container içine gir (debug için)
+docker-compose exec app bash
+```
+
+### Önemli Notlar
+
+- Kod değişiklikleri otomatik olarak algılanır (hot reload)
+- `app/`, `app/data/` ve `logs/` dizinleri volume olarak bağlıdır
+- API'ye erişim: http://localhost:8000
+
+### Production Ortamı için Docker
+
+Production ortamında çalıştırmak için:
+
+```bash
+# Production container'ı başlat
+docker-compose -f docker-compose.prod.yml up -d --build
+
+# Logları görüntüle
+docker-compose -f docker-compose.prod.yml logs -f
 
 # Durdur
-docker-compose down
+docker-compose -f docker-compose.prod.yml down
 ```
+
+**Production ve Development Farkları:**
+- Production: Hot reload yok, optimize edilmiş image
+- Production: Restart policy aktif (otomatik yeniden başlatma)
+- Development: Kod değişiklikleri anında yansır
 
 ## 📡 API Endpoints
 

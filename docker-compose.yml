@@ -1,12 +1,13 @@
 version: '3.8'
 
 services:
-  # FastAPI Backend
-  msku-chatbot-api:
+  # FastAPI Backend - Development Mode
+  app:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: msku-chatbot-api
+      target: development
+    container_name: msku-chatbot-dev
     ports:
       - "8000:8000"
     volumes:
@@ -20,28 +21,21 @@ services:
       - GROQ_API_KEY=${GROQ_API_KEY}
     env_file:
       - .env
-    restart: unless-stopped
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
     networks:
       - msku-network
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
 
   # Ollama (Optional - for local LLM)
   # Uncomment if you want to use Ollama as fallback
   # ollama:
   #   image: ollama/ollama:latest
-  #   container_name: ollama
+  #   container_name: msku-ollama-dev
   #   ports:
   #     - "11434:11434"
   #   volumes:
   #     - ollama-data:/root/.ollama
   #   networks:
   #     - msku-network
-  #   restart: unless-stopped
 
 networks:
   msku-network:

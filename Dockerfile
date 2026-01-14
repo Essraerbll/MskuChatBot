@@ -1,5 +1,5 @@
-# Use Python 3.10 slim image
-FROM python:3.10-slim
+# Base stage - shared dependencies
+FROM python:3.10-slim as base
 
 # Set working directory
 WORKDIR /app
@@ -17,22 +17,41 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
-# Download embedding model during build (optional, for faster startup)
-RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('paraphrase-multilingual-mpnet-base-v2')" || true
-
-# Copy application code
-COPY ./app ./app
-COPY .env.example .env
-
 # Create necessary directories
 RUN mkdir -p /app/app/data/chroma_db /app/app/data/cache /app/logs
 
 # Expose port
 EXPOSE 8000
 
+# ============================================
+# Development stage
+# ============================================
+FROM base as development
+
+# Install development tools
+RUN pip install --no-cache-dir watchdog
+
+# Copy application code (will be overridden by volume mount)
+COPY ./app ./app
+
+# Development command with hot reload
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+
+# ============================================
+# Production stage
+# ============================================
+FROM base as production
+
+# Download embedding model during build (for faster startup)
+RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('paraphrase-multilingual-mpnet-base-v2')" || true
+
+# Copy application code
+COPY ./app ./app
+COPY .env.example .env
+
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
     CMD curl -f http://localhost:8000/api/v1/health || exit 1
 
-# Run the application
+# Production command
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
