@@ -4,7 +4,9 @@ import logging
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
+from pathlib import Path
 
 from app.core.config import settings
 from app.core.logging import setup_logging
@@ -68,11 +70,22 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Mount static files
+static_path = Path(__file__).parent / "static"
+static_path.mkdir(exist_ok=True)
+app.mount("/static", StaticFiles(directory=str(static_path)), name="static")
+
 
 @app.get("/", include_in_schema=False)
 async def root():
     """Redirect root to API documentation."""
     return RedirectResponse(url=f"{settings.API_V1_PREFIX}/docs")
+
+
+@app.get("/qa-management", include_in_schema=False)
+async def qa_management():
+    """Serve QA management interface."""
+    return FileResponse(str(static_path / "qa_management.html"))
 
 
 # Include API v1 router

@@ -1,6 +1,6 @@
 """API v1 router configuration."""
 from fastapi import APIRouter
-from app.api.v1.endpoints import health, chat
+from app.api.v1.endpoints import health, chat, qa
 
 # Create main v1 router
 api_router = APIRouter()
@@ -14,3 +14,6 @@ api_router.include_router(
     prefix="/chat",
     tags=["Chat"]
 )
+
+# Include QA management endpoints
+api_router.include_router(qa.router)
