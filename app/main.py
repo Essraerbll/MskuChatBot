@@ -56,9 +56,9 @@ app = FastAPI(
     description=settings.API_DESCRIPTION,
     version=settings.API_VERSION,
     lifespan=lifespan,
-    docs_url=f"{settings.API_V1_PREFIX}/docs",
-    redoc_url=f"{settings.API_V1_PREFIX}/redoc",
-    openapi_url=f"{settings.API_V1_PREFIX}/openapi.json"
+    docs_url="/docs",
+    redoc_url="/redoc",
+    openapi_url="/openapi.json"
 )
 
 # Configure CORS
@@ -79,7 +79,8 @@ app.mount("/static", StaticFiles(directory=str(static_path)), name="static")
 @app.get("/", include_in_schema=False)
 async def root():
     """Redirect root to API documentation."""
-    return RedirectResponse(url=f"{settings.API_V1_PREFIX}/docs")
+    return FileResponse(str(static_path / "qa_management.html"))
+    #return RedirectResponse("/qa_management.html")
 
 
 @app.get("/qa-management", include_in_schema=False)
