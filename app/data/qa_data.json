@@ -6,13 +6,5 @@
     "category": "GENEL BİLGİ",
     "created_at": "2026-01-19T11:29:07.002126",
     "updated_at": "2026-01-19T11:38:40.164360"
-  },
-  {
-    "id": "923fb8d7-47dc-41f6-be19-b6689196be3e",
-    "question": "ÖRNEK SORU:Her labda kaç bilgisayar var?",
-    "answer": "30 ADET",
-    "category": "LAB",
-    "created_at": "2026-01-19T11:38:21.794682",
-    "updated_at": null
   }
 ]
